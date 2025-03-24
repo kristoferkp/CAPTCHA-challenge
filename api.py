@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from contextlib import asynccontextmanager
 from PIL import Image
 import io
 import numpy as np
@@ -15,39 +16,28 @@ import asyncio
 # Import the model loader
 from model_loader import get_solver, CaptchaSolver
 
-app = FastAPI(title="Captcha Solver API")
-
 # Global model instance
 solver = None
 
 # Configure thread pool for handling model inference
-# Number of workers should be adjusted based on your hardware
 inference_pool = ThreadPoolExecutor(max_workers=4)
 
-@app.on_event("startup")
-async def startup_event():
-    """Load model on application startup"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Load the model
     global solver
     print("Loading CAPTCHA solver model...")
     start_time = time.time()
     solver = get_solver()
     print(f"Model loaded in {time.time() - start_time:.2f} seconds")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Clean up resources when shutting down"""
+    
+    yield
+    
+    # Shutdown: Clean up resources
     print("Shutting down and cleaning up resources...")
     # Any cleanup needed for the model
 
-# Mount static files directory
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-os.makedirs(static_dir, exist_ok=True)
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-@app.get("/", response_class=HTMLResponse)
-async def get_html():
-    """Serve the HTML upload page"""
-    return FileResponse(os.path.join(static_dir, "index.html"))
+app = FastAPI(title="Captcha Solver API", lifespan=lifespan)
 
 # This function now uses the globally loaded model
 async def solve_captcha(image) -> Dict[str, Any]:
@@ -114,4 +104,4 @@ async def upload_captcha(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="localhost", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
