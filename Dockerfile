@@ -23,5 +23,10 @@ COPY api.py /app/
 # Expose port for the API
 EXPOSE 8000
 
+# Default environment variables
+ENV API_HOST=0.0.0.0
+ENV API_PORT=8000
+ENV MAX_WORKERS=4
+
 # Command to run the API
 CMD ["python", "api.py"]

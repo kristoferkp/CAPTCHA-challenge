@@ -13,6 +13,11 @@ from concurrent.futures import ThreadPoolExecutor
 import functools
 import asyncio
 
+# Environment variables with defaults
+API_HOST = os.environ.get("API_HOST", "0.0.0.0")
+API_PORT = int(os.environ.get("API_PORT", "8000"))
+MAX_WORKERS = int(os.environ.get("MAX_WORKERS", "4"))
+
 # Import the model loader
 from model_loader import get_solver, CaptchaSolver
 
@@ -20,7 +25,7 @@ from model_loader import get_solver, CaptchaSolver
 solver = None
 
 # Configure thread pool for handling model inference
-inference_pool = ThreadPoolExecutor(max_workers=4)
+inference_pool = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,9 +38,9 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    # Shutdown: Clean up resources
-    print("Shutting down and cleaning up resources...")
-    # Any cleanup needed for the model
+    # Shutdown
+    print("Shutting down...")
+    inference_pool.shutdown(wait=True)
 
 app = FastAPI(title="Captcha Solver API", lifespan=lifespan)
 
@@ -104,4 +109,4 @@ async def upload_captcha(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=API_HOST, port=API_PORT)

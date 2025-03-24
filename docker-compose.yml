@@ -1,0 +1,20 @@
+services:
+  captcha-solver:
+    build:
+      context: .
+      dockerfile: DOCKERFILE
+    image: captcha-solver
+    container_name: captcha-solver
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - MAX_WORKERS=4
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
